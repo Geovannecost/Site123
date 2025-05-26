@@ -5,10 +5,7 @@ const nextConfig = {
     domains: ["images.unsplash.com", "via.placeholder.com"],
     unoptimized: true,
   },
-  env: {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    DATABASE_URL: process.env.DATABASE_URL,
-  },
+  // Remove env config that exposes server variables to client
   eslint: {
     ignoreDuringBuilds: true,
   },

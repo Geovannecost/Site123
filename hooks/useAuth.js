@@ -9,16 +9,68 @@ export function useAuth() {
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar se há token salvo
-    const token = localStorage.getItem("token")
-    const usuarioSalvo = localStorage.getItem("usuario")
-
-    if (token && usuarioSalvo) {
-      setUsuario(JSON.parse(usuarioSalvo))
-    }
-
-    setLoading(false)
+    checkAuthStatus()
   }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      // Check localStorage first
+      const token = localStorage.getItem("token")
+      const usuarioSalvo = localStorage.getItem("usuario")
+
+      if (token && usuarioSalvo) {
+        // Verify token is still valid
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setUsuario(data.usuario)
+        } else {
+          // Token invalid, clear storage
+          localStorage.removeItem("token")
+          localStorage.removeItem("usuario")
+          setUsuario(null)
+        }
+      }
+    } catch (error) {
+      console.error("Auth check error:", error)
+      // Clear invalid data
+      localStorage.removeItem("token")
+      localStorage.removeItem("usuario")
+      setUsuario(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const login = async (email, senha) => {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, senha }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        localStorage.setItem("token", data.token)
+        localStorage.setItem("usuario", JSON.stringify(data.usuario))
+        setUsuario(data.usuario)
+        return { success: true, usuario: data.usuario }
+      } else {
+        return { success: false, message: data.message }
+      }
+    } catch (error) {
+      return { success: false, message: "Erro de conexão" }
+    }
+  }
 
   const logout = () => {
     localStorage.removeItem("token")
@@ -33,6 +85,8 @@ export function useAuth() {
     usuario,
     loading,
     isLoggedIn,
+    login,
     logout,
+    checkAuthStatus,
   }
 }
