@@ -1,7 +1,6 @@
 import jwt from "jsonwebtoken"
-import { cookies } from "next/headers"
 
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || "fallback-secret-key"
+const JWT_SECRET = process.env.NEXTAUTH_SECRET || "fallback-secret-key-for-development"
 
 export interface AuthUser {
   id: string
@@ -22,30 +21,20 @@ export function verifyToken(token: string): AuthUser | null {
   }
 }
 
-export async function getServerSession(): Promise<AuthUser | null> {
+export function getTokenFromCookies(cookieString: string): string | null {
   try {
-    const cookieStore = cookies()
-    const token = cookieStore.get("auth-token")?.value
-
-    if (!token) return null
-
-    return verifyToken(token)
+    const cookies = cookieString.split(";").reduce(
+      (acc, cookie) => {
+        const [key, value] = cookie.trim().split("=")
+        if (key && value) {
+          acc[key] = decodeURIComponent(value)
+        }
+        return acc
+      },
+      {} as Record<string, string>,
+    )
+    return cookies["auth-token"] || null
   } catch {
     return null
   }
-}
-
-export function setAuthCookie(token: string) {
-  const cookieStore = cookies()
-  cookieStore.set("auth-token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  })
-}
-
-export function clearAuthCookie() {
-  const cookieStore = cookies()
-  cookieStore.delete("auth-token")
 }

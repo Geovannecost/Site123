@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, createContext, useContext } from "react"
 
 interface User {
@@ -14,7 +13,7 @@ interface User {
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>
   logout: () => Promise<void>
   checkAuth: () => Promise<void>
 }
@@ -27,11 +26,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch("/api/auth/me")
-      const data = await response.json()
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      })
 
-      if (data.success) {
-        setUser(data.user)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.user) {
+          setUser(data.user)
+        } else {
+          setUser(null)
+        }
       } else {
         setUser(null)
       }
@@ -43,36 +50,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       })
 
       const data = await response.json()
 
-      if (data.success) {
+      if (data.success && data.user) {
         setUser(data.user)
-        return true
+        return { success: true, message: data.message }
+      } else {
+        return { success: false, message: data.message || "Erro no login" }
       }
-
-      return false
     } catch (error) {
       console.error("Login failed:", error)
-      return false
+      return { success: false, message: "Erro interno do servidor" }
     }
   }
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" })
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      })
       setUser(null)
     } catch (error) {
       console.error("Logout failed:", error)
+      setUser(null)
     }
   }
 

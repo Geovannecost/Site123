@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Leaf, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Leaf, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react"
 
 export default function CadastroPage() {
   const router = useRouter()
@@ -27,38 +27,23 @@ export default function CadastroPage() {
     confirmPassword: "",
     username: "",
     fullName: "",
-    phone: "",
     userType: "",
-    city: "",
-    state: "",
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
-
-    // Validação básica
-    if (formData.password !== formData.confirmPassword) {
-      setError("As senhas não coincidem")
-      return
-    }
-
-    if (!formData.userType) {
-      setError("Selecione o tipo de usuário")
-      return
-    }
-
-    if (!formData.state) {
-      setError("Selecione o estado")
-      return
-    }
-
     setIsLoading(true)
 
-    try {
-      console.log("Submitting registration form...")
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("As senhas não coincidem")
+      setIsLoading(false)
+      return
+    }
 
+    try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -69,32 +54,23 @@ export default function CadastroPage() {
           password: formData.password,
           username: formData.username,
           fullName: formData.fullName,
-          phone: formData.phone || undefined,
           userType: formData.userType,
-          city: formData.city,
-          state: formData.state,
         }),
       })
 
-      console.log("Response status:", response.status)
-
       const data = await response.json()
-      console.log("Response data:", data)
 
       if (data.success) {
-        setSuccess("Conta criada com sucesso! Redirecionando para o login...")
+        setSuccess("Conta criada com sucesso! Redirecionando...")
         setTimeout(() => {
-          router.push("/login?message=Conta criada com sucesso! Faça login para continuar.")
+          router.push("/painel")
+          router.refresh()
         }, 2000)
       } else {
         setError(data.message || "Erro ao criar conta")
-        if (data.errors) {
-          console.error("Validation errors:", data.errors)
-        }
       }
     } catch (error) {
-      console.error("Network error:", error)
-      setError("Erro de conexão. Verifique sua internet e tente novamente.")
+      setError("Erro de conexão. Tente novamente.")
     } finally {
       setIsLoading(false)
     }
@@ -110,14 +86,14 @@ export default function CadastroPage() {
             </div>
             <span className="text-2xl font-bold text-green-800">Planta Fácil</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Criar conta</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Crie sua conta</h1>
           <p className="text-gray-600 mt-2">Junte-se à nossa comunidade de plantas</p>
         </div>
 
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Cadastro</CardTitle>
-            <CardDescription>Preencha os dados abaixo para criar sua conta</CardDescription>
+            <CardDescription>Preencha os dados para criar sua conta</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -128,6 +104,7 @@ export default function CadastroPage() {
 
             {success && (
               <Alert className="mb-4 border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">{success}</AlertDescription>
               </Alert>
             )}
@@ -150,7 +127,7 @@ export default function CadastroPage() {
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Seu nome de usuário"
+                  placeholder="Escolha um nome de usuário"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required
@@ -170,51 +147,13 @@ export default function CadastroPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="(11) 99999-9999"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">Cidade</Label>
-                  <Input
-                    id="city"
-                    type="text"
-                    placeholder="Sua cidade"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">Estado</Label>
-                  <Select onValueChange={(value) => setFormData({ ...formData, state: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="UF" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SP">SP</SelectItem>
-                      <SelectItem value="RJ">RJ</SelectItem>
-                      <SelectItem value="MG">MG</SelectItem>
-                      <SelectItem value="RS">RS</SelectItem>
-                      <SelectItem value="PR">PR</SelectItem>
-                      <SelectItem value="SC">SC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="userType">Tipo de usuário</Label>
-                <Select onValueChange={(value) => setFormData({ ...formData, userType: value })}>
+                <Select
+                  value={formData.userType}
+                  onValueChange={(value) => setFormData({ ...formData, userType: value })}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <SelectValue placeholder="Selecione o tipo de usuário" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="buyer">Comprador</SelectItem>
@@ -230,7 +169,7 @@ export default function CadastroPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Sua senha"
+                    placeholder="Crie uma senha"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
@@ -278,25 +217,6 @@ export default function CadastroPage() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  id="terms"
-                  type="checkbox"
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                  required
-                />
-                <Label htmlFor="terms" className="text-sm">
-                  Aceito os{" "}
-                  <Link href="/termos" className="text-green-600 hover:text-green-700">
-                    Termos de Uso
-                  </Link>{" "}
-                  e{" "}
-                  <Link href="/privacidade" className="text-green-600 hover:text-green-700">
-                    Política de Privacidade
-                  </Link>
-                </Label>
-              </div>
-
               <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
                 {isLoading ? (
                   <>
@@ -304,7 +224,7 @@ export default function CadastroPage() {
                     Criando conta...
                   </>
                 ) : (
-                  "Criar Conta"
+                  "Criar conta"
                 )}
               </Button>
             </form>
